@@ -1,0 +1,35 @@
+{%  extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="container">
+        <img src="{{ image.url }}" class="img-fluid mt-3" alt="Responsive image" style="border: solid black">
+        <div>
+            <div class="div col-md-8">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-dark">
+                        <thead>
+                        <tr>
+                            <th scope="col">Title</th>
+                            <th scope="col">Description</th>
+                            <th scope="col">Creator</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>{{ image.title }}</td>
+                            <td>{{ image.description }}</td>
+                            <td>Curly BOT</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">This picture has been resized, click <a href="{{ image.url }}">here</a> to see the original picture</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+{%  endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div class="container mt-4">
+        <h1>Gérer les biens</h1>
+
+        {% for message in app.flashes('success') %}
+            <div class="alert alert-success">
+                {{ message }}
+            </div>
+        {% endfor %}
+
+        <table class="table table-secondary table-striped">
+            <thead>
+            <tr>
+                <th>Titre</th>
+                <th>ID</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for image in images %}
+                <tr>
+                    <td>{{ image.title }}</td>
+                    <td>{{ image.id }}</td>
+                    <td>
+                        <a href="{{ path('profile.image.edit', {id: image.id}) }}" class="btn btn-warning">Editer</a>
+                        <form method="post" action="{{ path("profile.image.delete", {id: image.id}) }}" style="display: inline-block">
+                            <input type="hidden" name="_method" value="DELETE">
+                            <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ image.id) }}">
+                            <button class="btn btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <div>
+            <a href="{{ path('profile.image.new') }}" class="btn btn-primary">Ajouter une image</a>
+        </div>
+
+    </div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{%  extends 'base.html.twig' %}
+
+{% block body %}
+
+    <div class="container mt-3">
+        <h1>Ajouter une image</h1>
+        {{ form_start(form) }}
+        <div class="row">
+            <div class="col-md-4">{{ form_widget(form) }}</div>
+            <div class="container mt-3">
+                <button class="btn btn-primary">Create</button>
+            </div>
+        </div>
+        {{ form_end(form) }}
+    </div>
+
+{%  endblock %}
