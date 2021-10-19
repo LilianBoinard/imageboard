@@ -2,29 +2,38 @@
 namespace App\Controller\Profile;
 
 use App\Entity\Image;
+use App\Entity\User;
 use App\Form\ImageType;
+use App\Form\RegisterType;
 use App\Repository\ImageRepository;
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use http\Env\Response;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Security\Core\Security;
 
 class ProfileImageController extends AbstractController
 {
     /**
-     * @var PropertyRepository
+     * @var ImageRepository
      */
-    private $repository;
+    private $imageRepository;
+
+    /**
+     * @var UserRepository
+     */
+    private $userRepository;
 
     /**
      * @var EntityManagerInterface
      */
     private $em;
 
-    public function __construct(ImageRepository $repository, EntityManagerInterface $em)
+    public function __construct(ImageRepository $imageRepository, UserRepository $userRepository, EntityManagerInterface $em)
     {
-        $this->repository = $repository;
+        $this->imageRepository = $imageRepository;
+        $this->userRepository = $userRepository;
         $this->em = $em;
     }
 
@@ -32,23 +41,42 @@ class ProfileImageController extends AbstractController
      * @Route("/profile", name="profile.image.index")
      * @return \Symfony\Component\HttpFoundation\Response
      */
-    public function index()
+    public function index(Security $security)
     {
-        $images = $this->repository->findAll();
+        /** @var User $user */
+        $user = $security->getUser();
+        if ($user->getAdmin()) {
+            $images = $this->imageRepository->findAll();
+            $users = $this->userRepository->findAll();
+            return $this->render('profile/image/index.html.twig', compact('images', 'users'));
+        }
+        $images = $this->imageRepository->findBy([
+            'author' => $user->getId(),
+        ]);
         return $this->render('profile/image/index.html.twig', compact('images'));
     }
 
     /**
      * @Route("/profile/image/create", name="profile.image.new", methods="GET|POST")
      */
-    public function new(Request $request)
+    public function newImage(Request $request, Security $security)
     {
+        /** @var User $user */
+        $user = $security->getUser();
         $image = new Image();
         $form = $this->createForm(ImageType::class, $image);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->em->persist($image);
+            if ($upload = $form->get('upload')->getData())
+            {
+                $file = md5(uniqid()) . '.' . $user->getId() . '.' . $upload->guessExtension();
+                $upload->move($this->getParameter('images_directory'), $file);
+                $image->setUrl($file);
+            }
+
+            $user->addImage($image);
+            $this->em->persist($user);
             $this->em->flush();
             $this->addFlash('success', 'Succes !');
             return $this->redirectToRoute('profile.image.index');
@@ -63,7 +91,7 @@ class ProfileImageController extends AbstractController
     /**
      * @Route("/profile/image/{id}", name="profile.image.delete", methods="DELETE")
      */
-    public function delete(Image $image, Request $request) {
+    public function deleteImage(Image $image, Request $request) {
         if ($this->isCsrfTokenValid('delete' . $image->getId(), $request->get('_token')))
         {
             $this->em->remove($image);
@@ -74,14 +102,23 @@ class ProfileImageController extends AbstractController
     }
 
     /**
-     * @Route("/profile/{id}", name="profile.image.edit")
+     * @Route("/profile/image/{id}", name="profile.image.edit")
      */
-    public function edit(Image $image, Request $request)
+    public function editImage(Image $image, Request $request, Security $security)
     {
+        /** @var User $user */
+        $user = $security->getUser();
         $form = $this->createForm(ImageType::class, $image);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            if ($upload = $form->get('upload')->getData())
+            {
+                $file = md5(uniqid()) . '.' . $user->getId() . '.' . $upload->guessExtension();
+                $upload->move($this->getParameter('images_directory'), $file);
+                $image->setUrl($file);
+            }
+
             $this->em->flush();
             $this->addFlash('success', 'Succes !');
             return $this->redirectToRoute('profile.image.index');
@@ -92,4 +129,40 @@ class ProfileImageController extends AbstractController
             'form' => $form->createView(),
         ]);
     }
+
+    /**
+     * @Route("/profile/user/edit/{id}", name="profile.user.edit")
+     */
+    public function editUser(User $user, Request $request)
+    {
+        $form = $this->createForm(RegisterType::class, $user);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->em->flush();
+            $this->addFlash('success', 'Succes !');
+            return $this->redirectToRoute('profile.image.index');
+        }
+
+        return $this->render('profile/user/edit.html.twig', [
+            'user' => $user,
+            'form' => $form->createView(),
+        ]);
+    }
+
+    /**
+     * @Route("/profile/user/delete/{id}", name="profile.user.delete", methods="DELETE")
+     */
+    public function deleteUser(User $user, Request $request)
+    {
+        if ($this->isCsrfTokenValid('delete' . $user->getId(), $request->get('_token')))
+        {
+            $this->em->remove($user);
+            $this->em->flush();
+            $this->addFlash('success', 'Succes !');
+        }
+        return $this->redirectToRoute('profile.image.index');
+    }
+
+
 }

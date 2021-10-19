@@ -2,9 +2,11 @@
 
 namespace App\Controller;
 
+use App\Entity\Comment;
 use App\Repository\ImageRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -39,17 +41,52 @@ class ImageController extends AbstractController
         ]);
     }
 
+//    /**
+//     * @Route("/comment", name="comment_create")
+//     * @return Response
+//     */
+//    public function newComment (Request $request): Response
+//    {
+//        $em = $this->getDoctrine()->getManager();
+//        $comment = new Comment();
+//        $user = $this->get('security.token_storage')->getToken()->getUser();
+//        $comment->setUser($user);
+//        $form = $this->createForm(CommentType::class, $comment);
+//        $form->handleRequest($request);
+//
+//        if ($form->isSubmitted() && $form->isValid())
+//        {
+//            $em->persist($comment);
+//            $em->flush();
+//        }
+//
+//        $comments = $em->getRepository('App:Comment')->findAll();
+//
+//        return $this->render('image/show.html.twig', [
+//            'comments' => $comments,
+//            'form' => $form->createView(),
+//        ]);
+//    }
+
     /**
      * @Route("/image/{slug}-{id}", name="image.show", requirements={"slug": "[a-z0-9\-]*"})
      * @return Response
      */
-    public function show($slug, $id): Response
+    public function show($slug, $id, Request $request): Response
     {
         $image = $this->repository->find($id);
-        $images = $this->repository->findAllVisible();
+        $user = $image->getAuthor();
+        $username = strtolower($user->getUsername());
+        $comments = $image->getComment();
+        $comment = new Comment();
+        $form = $this->createForm(CommentType::class, $comment);
+        $form->handleRequest($request);
         return $this->render('image/show.html.twig', [
+            'username' => $username,
             'image' => $image,
-            'images' => $images,
+            'user' => $user,
+            'comments' => $comments,
+            'form' => $form,
         ]);
     }
 }
